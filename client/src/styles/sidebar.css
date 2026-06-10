@@ -1,0 +1,1683 @@
+﻿/* ============================================================================
+   Sidebar — Tactical Command Console
+   Strict 4/8 px rhythm · scannable rows · clear sectional separation
+   Operator-readable: high text contrast, glow only on accents and critical
+   ============================================================================ */
+
+.sidebar {
+  position: relative;
+  margin: 14px 14px 14px 0;
+  border: 1px solid var(--nv-edge-soft);
+  border-radius: var(--nv-r-6);
+  background:
+    linear-gradient(
+      180deg,
+      var(--nv-surface) 0%,
+      var(--nv-bg-2) 100%
+    );
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  box-shadow:
+    var(--nv-shadow-3),
+    inset 0 0 0 1px rgba(0, 217, 255, 0.04);
+  font-family: var(--nv-font-tactical);
+  isolation: isolate;
+  z-index: var(--nv-z-sidebar);
+}
+
+/* ============================================================================
+   Sidebar zone architecture
+   --------------------------------------------------------------------------
+   Strict 7-zone layout. Each zone is a real layout box with intentional
+   sizing rules so notifications NEVER overlap operational data.
+   ZONE 1 Header  · ZONE 2 Alert digest · ZONE 3 Controls
+   ZONE 4 Fleet (PROTECTED, flex:1 with min-height)
+   ZONE 5 Recommendation (bounded, internal scroll)
+   ZONE 6 Log (bounded, internal scroll)
+   ZONE 7 Footer
+   ============================================================================ */
+
+.sidebar-zone {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sidebar-zone--header {
+  flex: 0 0 auto;
+}
+
+.sidebar-zone--alerts {
+  flex: 0 0 auto;
+}
+
+.sidebar-zone--controls {
+  flex: 0 0 auto;
+  padding-top: 4px;
+}
+
+.sidebar-zone--fleet {
+  flex: 1 1 0;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-top: 1px solid var(--nv-edge-divider);
+  background: linear-gradient(
+    180deg,
+    rgba(2, 8, 20, 0.18) 0%,
+    transparent 60%
+  );
+}
+
+/* In-flow zone heading — replaces the previous absolute pseudo-element
+   so it never overlaps scrolling content underneath. */
+.sidebar-zone-title {
+  display: flex;
+  align-items: center;
+  gap: var(--nv-sp-2);
+  padding: 10px 16px 8px;
+  font-family: var(--nv-font-display);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--nv-cyan);
+  border-bottom: 1px solid var(--nv-edge-divider);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 217, 255, 0.04) 0%,
+    transparent 100%
+  );
+  flex: 0 0 auto;
+}
+
+.sidebar-zone-title-bar {
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--nv-cyan), transparent);
+}
+
+.sidebar-zone-title-text {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-zone-title-meta {
+  font-family: var(--nv-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--nv-text-muted);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--nv-edge-soft);
+  background: var(--nv-bg);
+  text-transform: none;
+}
+
+/* Per-tab heading accent colors */
+.sidebar-zone--tab-security .sidebar-zone-title {
+  color: var(--nv-critical);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 77, 109, 0.06) 0%,
+    transparent 100%
+  );
+}
+
+.sidebar-zone--tab-security .sidebar-zone-title-bar {
+  background: linear-gradient(90deg, var(--nv-critical), transparent);
+}
+
+.sidebar-zone--tab-alerts .sidebar-zone-title {
+  color: var(--nv-warning);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 179, 71, 0.07) 0%,
+    transparent 100%
+  );
+}
+
+.sidebar-zone--tab-alerts .sidebar-zone-title-bar {
+  background: linear-gradient(90deg, var(--nv-warning), transparent);
+}
+
+.sidebar-zone--recommendation {
+  flex: 0 1 auto;
+  min-height: 110px;
+  max-height: clamp(180px, 30vh, 340px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-top: 1px solid var(--nv-edge-divider);
+  padding: 12px 14px 4px;
+  background: linear-gradient(
+    180deg,
+    rgba(40, 24, 6, 0.16) 0%,
+    transparent 70%
+  );
+}
+
+.sidebar-zone--log {
+  flex: 0 1 auto;
+  min-height: 110px;
+  max-height: clamp(180px, 28vh, 320px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-top: 1px solid var(--nv-edge-divider);
+  padding: 12px 14px 4px;
+}
+
+.sidebar-zone--footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--nv-edge-divider);
+  padding-top: 4px;
+}
+
+/* === ZONE 2 — System alert digest =========================================
+   Compact at-a-glance digest. Always visible. Sits between header and
+   controls so the operator sees situational summary instantly without
+   scrolling. NEVER pushes the fleet list out.
+   ========================================================================== */
+
+.sidebar-zone--alerts {
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid var(--nv-edge-divider);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 217, 255, 0.04) 0%,
+    transparent 100%
+  );
+}
+
+.alert-digest-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nv-sp-2);
+  margin-bottom: 8px;
+  font-family: var(--nv-font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--nv-text-dim);
+}
+
+.alert-digest-heading .alert-digest-tick {
+  display: inline-block;
+  width: 22px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--nv-cyan), transparent);
+  opacity: 0.7;
+}
+
+.alert-digest-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.alert-digest-pill {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border-radius: var(--nv-r-2);
+  border: 1px solid var(--nv-edge-soft);
+  background: var(--nv-bg);
+  font-family: var(--nv-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  transition:
+    border-color var(--nv-d-fast) var(--nv-ease),
+    background var(--nv-d-fast) var(--nv-ease),
+    box-shadow var(--nv-d-fast) var(--nv-ease);
+}
+
+.alert-digest-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nv-text-quiet);
+}
+
+.alert-digest-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--nv-text-muted);
+  letter-spacing: 0.16em;
+}
+
+.alert-digest-count {
+  font-family: var(--nv-font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nv-text-quiet);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  letter-spacing: 0;
+}
+
+/* CRITICAL — red, pulses when active */
+.alert-digest-critical.on {
+  border-color: rgba(255, 77, 109, 0.55);
+  background: rgba(40, 8, 16, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(255, 77, 109, 0.18);
+}
+.alert-digest-critical.on .alert-digest-icon,
+.alert-digest-critical.on .alert-digest-label,
+.alert-digest-critical.on .alert-digest-count {
+  color: var(--nv-critical);
+}
+.alert-digest-critical.on .alert-digest-count {
+  text-shadow: 0 0 8px rgba(255, 77, 109, 0.5);
+  animation: nv-pulse 1.6s var(--nv-ease) infinite;
+}
+
+/* RADAR — cyan when contacts present */
+.alert-digest-radar.on {
+  border-color: var(--nv-edge-strong);
+  background: rgba(0, 217, 255, 0.10);
+}
+.alert-digest-radar.on .alert-digest-icon,
+.alert-digest-radar.on .alert-digest-label,
+.alert-digest-radar.on .alert-digest-count {
+  color: var(--nv-cyan);
+}
+
+/* ADVISORY — amber when AI recommendation active */
+.alert-digest-advisory.on {
+  border-color: rgba(255, 179, 71, 0.55);
+  background: rgba(40, 24, 6, 0.55);
+}
+.alert-digest-advisory.on .alert-digest-icon,
+.alert-digest-advisory.on .alert-digest-label,
+.alert-digest-advisory.on .alert-digest-count {
+  color: var(--nv-warning);
+}
+
+/* LOG — neutral lit when entries exist */
+.alert-digest-log.on {
+  border-color: var(--nv-edge);
+  background: rgba(0, 168, 255, 0.06);
+}
+.alert-digest-log.on .alert-digest-icon {
+  color: var(--nv-blue);
+}
+.alert-digest-log.on .alert-digest-label {
+  color: var(--nv-text-dim);
+}
+.alert-digest-log.on .alert-digest-count {
+  color: var(--nv-text-strong);
+}
+
+/* Subtle holographic top edge accent */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 217, 255, 0.55),
+    transparent
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* === Classification strip ================================================ */
+
+.sidebar-classification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nv-sp-2);
+  padding: 6px 16px;
+  font-family: var(--nv-font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--nv-cyan);
+  background: rgba(0, 217, 255, 0.06);
+  border-bottom: 1px solid var(--nv-edge-divider);
+  z-index: 4;
+}
+
+.sidebar-classification span:nth-child(2) {
+  color: var(--nv-text-strong);
+  letter-spacing: 0.16em;
+}
+
+/* === Header ============================================================== */
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--nv-sp-3);
+  padding: 16px 18px;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 168, 255, 0.06) 0%,
+    transparent 100%
+  );
+  border-bottom: 1px solid var(--nv-edge-divider);
+}
+
+.sidebar-title {
+  display: inline-flex;
+  gap: var(--nv-sp-2);
+  align-items: center;
+  font-family: var(--nv-font-display);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--nv-text-strong);
+}
+
+.sidebar-title svg {
+  color: var(--nv-cyan);
+}
+
+.sidebar-right {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-family: var(--nv-font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(0, 217, 255, 0.10);
+  border: 1px solid var(--nv-edge);
+  color: var(--nv-text-strong);
+}
+
+.sidebar-right svg {
+  color: var(--nv-cyan);
+}
+
+/* === Captain controls ==================================================== */
+
+.captain-controls {
+  border-bottom: 1px solid var(--nv-edge-divider);
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 8px;
+  background: rgba(2, 8, 20, 0.32);
+}
+
+.captain-controls label {
+  font-family: var(--nv-font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--nv-text-dim);
+}
+
+.captain-controls select,
+.captain-controls textarea {
+  width: 100%;
+  border: 1px solid var(--nv-edge-soft);
+  border-radius: var(--nv-r-3);
+  background: var(--nv-bg);
+  color: var(--nv-text-strong);
+  padding: 10px 12px;
+  font-family: var(--nv-font-tactical);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  outline: none;
+  transition:
+    border-color var(--nv-d-fast) var(--nv-ease),
+    box-shadow var(--nv-d-fast) var(--nv-ease);
+}
+
+.captain-controls select:hover,
+.captain-controls textarea:hover {
+  border-color: var(--nv-edge);
+}
+
+.captain-controls select:focus,
+.captain-controls textarea:focus {
+  border-color: var(--nv-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15);
+}
+
+.captain-controls textarea {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.45;
+}
+
+.captain-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.captain-action-row .tool-btn {
+  flex: 1 1 148px;
+  justify-content: center;
+}
+
+.captain-accept-btn {
+  border-color: rgba(52, 211, 153, 0.55);
+  color: #a7f3d0;
+}
+
+/* === Tabs ================================================================ */
+
+.sidebar-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 10px 14px 10px;
+  padding: 4px;
+  background: var(--nv-bg);
+  border: 1px solid var(--nv-edge-soft);
+  border-radius: var(--nv-r-3);
+}
+
+.sidebar-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 7px;
+  padding: 9px 8px;
+  font-family: var(--nv-font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--nv-text-dim);
+  cursor: pointer;
+  transition:
+    background var(--nv-d-fast) var(--nv-ease),
+    color var(--nv-d-fast) var(--nv-ease),
+    border-color var(--nv-d-fast) var(--nv-ease);
+}
+
+.sidebar-tab:hover {
+  color: var(--nv-text-strong);
+  background: rgba(0, 217, 255, 0.06);
+}
+
+.sidebar-tab:focus-visible {
+  outline: 2px solid var(--nv-cyan);
+  outline-offset: 2px;
+}
+
+.sidebar-tab.active {
+  border-color: var(--nv-edge-strong);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 217, 255, 0.22) 0%,
+    rgba(0, 168, 255, 0.10) 100%
+  );
+  color: var(--nv-text-strong);
+  box-shadow: inset 0 0 0 1px rgba(0, 217, 255, 0.32);
+}
+
+/* Alerts tab — uses warning amber accent when alerts are pending. */
+.sidebar-tab--alerts.has-alerts {
+  color: var(--nv-warning);
+}
+
+.sidebar-tab--alerts.has-alerts:hover {
+  background: rgba(255, 179, 71, 0.08);
+}
+
+.sidebar-tab--alerts.active {
+  border-color: rgba(255, 179, 71, 0.6);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 179, 71, 0.22) 0%,
+    rgba(255, 179, 71, 0.08) 100%
+  );
+  color: #ffe8c8;
+  box-shadow: inset 0 0 0 1px rgba(255, 179, 71, 0.36);
+}
+
+.sidebar-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--nv-warning);
+  color: #1b0f00;
+  font-family: var(--nv-font-mono);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+  box-shadow: 0 0 8px rgba(255, 179, 71, 0.55);
+}
+
+.sidebar-tab--alerts.has-alerts .sidebar-tab-badge {
+  animation: nv-pulse 1.6s var(--nv-ease) infinite;
+}
+
+.sidebar-tab--alerts.active .sidebar-tab-badge {
+  animation: none;
+}
+
+/* === Alerts tab pane — host for AI recommendation + operational log ======
+   The pane itself scrolls so the operator can read every alert (advisory
+   text + complete operational log) without splitting visual context. Inner
+   panels render at natural height; the parent owns the scroll. ============ */
+
+.alerts-tab-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.alerts-tab-pane::-webkit-scrollbar {
+  width: 8px;
+}
+
+.alerts-tab-pane::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.alerts-tab-pane::-webkit-scrollbar-thumb {
+  background: rgba(99, 130, 170, 0.28);
+  border-radius: 999px;
+}
+
+.alerts-tab-pane::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 217, 255, 0.45);
+}
+
+/* Empty state — shown only when no recommendation and no log entries */
+.alerts-empty-state {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 24px 18px;
+  border-radius: var(--nv-r-4);
+  border: 1px dashed var(--nv-edge-soft);
+  background: rgba(2, 8, 20, 0.32);
+  color: var(--nv-text-muted);
+  max-width: 320px;
+}
+
+.alerts-empty-state svg {
+  color: var(--nv-text-quiet);
+}
+
+.alerts-empty-state strong {
+  font-family: var(--nv-font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--nv-text-dim);
+}
+
+.alerts-empty-state span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nv-text-muted);
+  font-family: var(--nv-font-tactical);
+}
+
+/* === Type filter chips =================================================== */
+
+.type-filter-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 14px 12px;
+}
+
+.type-chip {
+  border: 1px solid var(--nv-edge-soft);
+  background: var(--nv-bg);
+  color: var(--nv-text-dim);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-family: var(--nv-font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color var(--nv-d-fast) var(--nv-ease),
+    color var(--nv-d-fast) var(--nv-ease),
+    background var(--nv-d-fast) var(--nv-ease);
+}
+
+.type-chip:hover {
+  border-color: var(--nv-edge-strong);
+  color: var(--nv-text-strong);
+}
+
+.type-chip:focus-visible {
+  outline: 2px solid var(--nv-cyan);
+  outline-offset: 2px;
+}
+
+.type-chip.active {
+  color: var(--nv-text-strong);
+  border-color: var(--nv-cyan);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 217, 255, 0.24) 0%,
+    rgba(0, 168, 255, 0.12) 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(0, 217, 255, 0.4);
+}
+
+/* === COMMAND selected vessel (sidebar replaces map popup) ================ */
+
+.fleet-vessel-detail-panel {
+  margin: 12px 14px 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--nv-edge-strong);
+  border-radius: var(--nv-r-3);
+  background: linear-gradient(
+    180deg,
+    rgba(8, 18, 40, 0.92) 0%,
+    rgba(4, 10, 24, 0.94) 100%
+  );
+  box-shadow:
+    0 0 22px rgba(0, 168, 255, 0.12),
+    inset 0 0 0 1px rgba(0, 217, 255, 0.06);
+  flex: 0 0 auto;
+  max-height: 42%;
+  overflow-y: auto;
+}
+
+.fleet-vessel-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.fleet-vessel-detail-title {
+  font-family: var(--nv-font-display);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  color: var(--nv-text-strong);
+  text-shadow: 0 0 14px rgba(0, 217, 255, 0.28);
+}
+
+.fleet-vessel-detail-close {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  border: 1px solid var(--nv-edge-soft);
+  background: rgba(4, 10, 24, 0.85);
+  color: var(--nv-text-dim);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color var(--nv-d-fast) var(--nv-ease),
+    color var(--nv-d-fast) var(--nv-ease);
+}
+
+.fleet-vessel-detail-close:hover {
+  border-color: var(--nv-edge-strong);
+  color: var(--nv-text-strong);
+}
+
+.fleet-vessel-detail-sub {
+  margin: 0 0 12px;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--nv-text-muted);
+}
+
+.fleet-vessel-detail-dl {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.fleet-vessel-detail-row {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.fleet-vessel-detail-row dt {
+  margin: 0;
+  font-family: var(--nv-font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nv-cyan);
+}
+
+.fleet-vessel-detail-row dd {
+  margin: 0;
+  font-family: var(--nv-font-mono);
+  color: var(--nv-text-strong);
+}
+
+.fleet-vessel-detail-status.critical {
+  color: #fca5a5;
+}
+
+.fleet-vessel-detail-fueltrack {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 24, 48, 0.85);
+  overflow: hidden;
+  border: 1px solid var(--nv-edge-soft);
+}
+
+.restricted-zones-panel {
+  margin: 10px 14px 12px;
+  padding: 12px 14px;
+  border-radius: var(--nv-r-3);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(40, 28, 6, 0.35);
+}
+
+.restricted-zones-heading {
+  font-family: var(--nv-font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--nv-warning);
+  margin-bottom: 8px;
+}
+
+.restricted-zones-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.restricted-zones-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--nv-r-2);
+  border: 1px solid var(--nv-edge-soft);
+  background: var(--nv-bg);
+}
+
+.restricted-zones-id {
+  font-size: 11px;
+  color: var(--nv-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.restricted-zones-delete {
+  flex-shrink: 0;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  background: rgba(80, 12, 24, 0.35);
+  color: #fecaca;
+  border-radius: var(--nv-r-2);
+  padding: 5px 10px;
+  font-family: var(--nv-font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.restricted-zones-delete:hover {
+  border-color: rgba(248, 113, 113, 0.75);
+}
+
+.replay-banner {
+  margin: 8px 14px 4px;
+  padding: 10px 12px;
+  border-radius: var(--nv-r-3);
+  border: 1px solid rgba(0, 217, 255, 0.35);
+  background: rgba(0, 48, 72, 0.35);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--nv-text-muted);
+}
+
+/* ============================================================================
+   AI recommendation panel  — PRIORITY 3 (alert / advisory)
+   ============================================================================ */
+
+.ai-recommendation-panel {
+  position: relative;
+  margin: 0 0 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 179, 71, 0.5);
+  border-left: 3px solid var(--nv-warning);
+  border-radius: var(--nv-r-4);
+  background: linear-gradient(
+    180deg,
+    rgba(40, 24, 6, 0.55) 0%,
+    rgba(20, 12, 2, 0.7) 100%
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--nv-shadow-2);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* When the recommendation panel sits inside the Alerts tab pane it renders
+   at natural height — the parent .alerts-tab-pane owns the scroll so the
+   operator can read every advisory + every log line in one continuous
+   scroll. */
+.ai-recommendation-panel--in-tab {
+  flex: 0 0 auto;
+  overflow: visible;
+  margin: 0;
+}
+
+.ai-reco-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--nv-font-display);
+  font-size: 11px;
+  color: var(--nv-warning);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 800;
+}
+
+.ai-reco-title svg {
+  color: var(--nv-warning);
+}
+
+.ai-reco-main {
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.02em;
+  color: #ffe8c8;
+  font-family: var(--nv-font-tactical);
+}
+
+.ai-reco-summary {
+  font-size: 13px;
+  color: var(--nv-text);
+  line-height: 1.55;
+  font-family: var(--nv-font-tactical);
+}
+
+.ai-reco-action {
+  border: 1px solid var(--nv-edge);
+  background: rgba(0, 168, 255, 0.10);
+  border-radius: var(--nv-r-3);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--nv-text-strong);
+  font-weight: 500;
+  line-height: 1.5;
+  font-family: var(--nv-font-tactical);
+}
+
+.ai-reco-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+/* Primary action — "Apply AI Recommendation" */
+.ai-reco-actions > .tool-btn:first-child {
+  flex: 1;
+  min-width: 200px;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    var(--nv-cyan) 0%,
+    var(--nv-blue) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #04141f;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 9px 16px;
+  text-transform: uppercase;
+  font-size: 12px;
+  box-shadow:
+    var(--nv-shadow-1),
+    0 0 18px rgba(0, 217, 255, 0.32);
+}
+
+.ai-reco-actions > .tool-btn:first-child:hover:not(:disabled) {
+  background: linear-gradient(
+    180deg,
+    #6df1ff 0%,
+    #1ec4ff 100%
+  );
+  color: #021018;
+  box-shadow:
+    var(--nv-shadow-2),
+    0 0 22px rgba(0, 217, 255, 0.48);
+  transform: translateY(-1px);
+}
+
+.ai-reco-dismiss {
+  border-color: var(--nv-edge-soft) !important;
+  color: var(--nv-text-dim) !important;
+  background: transparent !important;
+  font-size: 11px !important;
+  padding: 8px 14px !important;
+}
+
+.ai-reco-dismiss:hover {
+  border-color: rgba(255, 77, 109, 0.55) !important;
+  color: #ffd5dd !important;
+  background: rgba(40, 8, 16, 0.4) !important;
+}
+
+/* ============================================================================
+   Operational log — PRIORITY 4 (rolling channel)
+   ============================================================================ */
+
+.operational-log-panel {
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border-radius: var(--nv-r-4);
+  border: 1px solid var(--nv-edge-soft);
+  background: var(--nv-surface);
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* In the Alerts tab pane, the log panel renders at natural height — the
+   parent .alerts-tab-pane scrolls. The log list itself does NOT scroll
+   independently, so all entries flow with the recommendation card above. */
+.operational-log-panel--in-tab {
+  flex: 0 0 auto;
+  margin: 0;
+  overflow: visible;
+}
+
+.operational-log-panel--in-tab .operational-log-list {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.operational-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nv-sp-2);
+}
+
+.operational-log-title {
+  font-family: var(--nv-font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--nv-text-dim);
+}
+
+.operational-log-clear {
+  border: 1px solid var(--nv-edge-soft);
+  background: transparent;
+  color: var(--nv-text-dim);
+  border-radius: var(--nv-r-2);
+  padding: 5px 12px;
+  font-family: var(--nv-font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color var(--nv-d-fast) var(--nv-ease),
+    color var(--nv-d-fast) var(--nv-ease),
+    background var(--nv-d-fast) var(--nv-ease);
+}
+
+.operational-log-clear:hover {
+  border-color: rgba(255, 77, 109, 0.6);
+  color: #ffd5dd;
+  background: rgba(40, 8, 16, 0.45);
+}
+
+.operational-log-clear:focus-visible {
+  outline: 2px solid var(--nv-cyan);
+  outline-offset: 2px;
+}
+
+.operational-log-hint {
+  margin: 8px 0 12px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--nv-text-muted);
+  letter-spacing: 0.01em;
+}
+
+.operational-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.operational-log-row {
+  display: grid;
+  grid-template-columns: 64px 78px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--nv-r-2);
+  border: 1px solid var(--nv-edge-soft);
+  background: var(--nv-bg);
+  transition:
+    border-color var(--nv-d-fast) var(--nv-ease),
+    background var(--nv-d-fast) var(--nv-ease);
+}
+
+.operational-log-row:hover {
+  border-color: var(--nv-edge);
+  background: var(--nv-bg-2);
+}
+
+.operational-log-time {
+  font-family: var(--nv-font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--nv-text-muted);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.operational-log-chip {
+  font-family: var(--nv-font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: var(--nv-r-1);
+  white-space: nowrap;
+  text-align: center;
+}
+
+.operational-log-chip-fleet-advisor {
+  border: 1px solid rgba(255, 179, 71, 0.55);
+  color: var(--nv-warning);
+  background: rgba(255, 179, 71, 0.10);
+}
+
+.operational-log-chip-distress {
+  border: 1px solid rgba(255, 77, 109, 0.55);
+  color: var(--nv-critical);
+  background: rgba(255, 77, 109, 0.12);
+}
+
+.operational-log-chip-security {
+  border: 1px solid var(--nv-edge);
+  color: var(--nv-cyan);
+  background: rgba(0, 217, 255, 0.08);
+}
+
+.operational-log-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.operational-log-severity {
+  font-family: var(--nv-font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.operational-log-severity-high {
+  color: #fb7185;
+}
+
+.operational-log-severity-medium {
+  color: #fbbf24;
+}
+
+.operational-log-severity-low {
+  color: var(--nv-text-muted);
+}
+
+.operational-log-summary {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--nv-text);
+  letter-spacing: 0.01em;
+  font-family: var(--nv-font-tactical);
+  font-weight: 500;
+}
+
+/* ============================================================================
+   Security panel — PRIORITY 1 / 2 (threat list)
+   ============================================================================ */
+
+.security-panel {
+  margin: 12px 14px 12px;
+  padding: 14px;
+  border-radius: var(--nv-r-4);
+  border: 1px solid rgba(255, 77, 109, 0.32);
+  border-left: 3px solid var(--nv-critical);
+  background: linear-gradient(
+    180deg,
+    rgba(40, 8, 16, 0.32) 0%,
+    var(--nv-surface) 100%
+  );
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.security-panel-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--nv-font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--nv-text-strong);
+}
+
+.security-panel-heading svg {
+  color: var(--nv-critical);
+  animation: nv-pulse 2.4s var(--nv-ease) infinite;
+}
+
+.security-panel-hint {
+  margin: 8px 0 14px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--nv-text-muted);
+  letter-spacing: 0.01em;
+}
+
+.security-panel-subheading {
+  margin: 14px 0 8px;
+  font-family: var(--nv-font-display);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--nv-critical);
+}
+
+.security-panel-subheading.dropped {
+  color: var(--nv-text-muted);
+}
+
+.security-panel-hint-tight {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.security-contact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.security-contact-empty {
+  padding: 14px;
+  font-size: 12px;
+  color: var(--nv-text-muted);
+  border: 1px dashed var(--nv-edge-soft);
+  border-radius: var(--nv-r-3);
+  text-align: center;
+  font-family: var(--nv-font-tactical);
+  letter-spacing: 0.02em;
+}
+
+.security-contact-btn {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--nv-r-3);
+  border: 1px solid var(--nv-edge-soft);
+  background: var(--nv-bg);
+  color: var(--nv-text);
+  cursor: pointer;
+  transition:
+    border-color var(--nv-d-fast) var(--nv-ease),
+    background var(--nv-d-fast) var(--nv-ease),
+    transform var(--nv-d-fast) var(--nv-ease),
+    box-shadow var(--nv-d-fast) var(--nv-ease);
+  font-family: var(--nv-font-tactical);
+}
+
+.security-contact-btn:hover {
+  border-color: var(--nv-edge-strong);
+  background: var(--nv-bg-2);
+  transform: translateY(-1px);
+  box-shadow: var(--nv-shadow-1);
+}
+
+.security-contact-btn:focus-visible {
+  outline: 2px solid var(--nv-cyan);
+  outline-offset: 2px;
+}
+
+.security-contact-btn.active {
+  border-color: var(--nv-warning);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 179, 71, 0.14) 0%,
+    var(--nv-bg) 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 179, 71, 0.4);
+}
+
+.security-contact-title {
+  display: block;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: var(--nv-font-display);
+  color: var(--nv-text-strong);
+}
+
+.security-contact-meta {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  font-family: var(--nv-font-mono);
+  color: var(--nv-text-muted);
+  letter-spacing: 0.03em;
+}
+
+.security-contact-dropped {
+  opacity: 0.78;
+  border-style: dashed !important;
+}
+
+.security-dropped-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-family: var(--nv-font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid var(--nv-edge-soft);
+  color: var(--nv-text-dim);
+  background: var(--nv-bg);
+}
+
+/* ============================================================================
+   Ship list — PRIORITY 2 (selected vessel data)
+   ============================================================================ */
+
+.ship-list {
+  list-style: none;
+  margin: 0;
+  padding: 12px 14px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ship-btn {
+  position: relative;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--nv-edge-soft);
+  background: var(--nv-surface);
+  color: inherit;
+  padding: 14px 16px 16px;
+  border-radius: var(--nv-r-4);
+  cursor: pointer;
+  transition:
+    border-color var(--nv-d-base) var(--nv-ease),
+    transform var(--nv-d-base) var(--nv-ease),
+    box-shadow var(--nv-d-base) var(--nv-ease),
+    background var(--nv-d-base) var(--nv-ease);
+  font-family: var(--nv-font-tactical);
+  box-shadow: var(--nv-shadow-1);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Status accent bar — left edge */
+.ship-btn::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--nv-cyan);
+  opacity: 0.24;
+  transition: opacity var(--nv-d-base) var(--nv-ease);
+}
+
+.ship-btn:hover {
+  border-color: var(--nv-edge);
+  transform: translateY(-2px);
+  background: var(--nv-surface-2);
+  box-shadow: var(--nv-shadow-2);
+}
+
+.ship-btn:hover::before {
+  opacity: 0.55;
+}
+
+.ship-btn:focus-visible {
+  outline: 2px solid var(--nv-cyan);
+  outline-offset: 2px;
+}
+
+.ship-btn.active {
+  border-color: var(--nv-cyan);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 217, 255, 0.10) 0%,
+    var(--nv-surface) 60%
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 217, 255, 0.32),
+    0 0 18px rgba(0, 217, 255, 0.18),
+    var(--nv-shadow-2);
+}
+
+.ship-btn.active::before {
+  opacity: 1;
+  box-shadow: 0 0 12px var(--nv-cyan);
+}
+
+.ship-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.ship-name {
+  font-family: var(--nv-font-display);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nv-text-strong);
+}
+
+.ship-type-tag {
+  color: var(--nv-text-dim);
+  font-family: var(--nv-font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  margin-left: 4px;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--nv-font-display);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--nv-text);
+}
+
+.status-chip.weather-delayed {
+  color: var(--nv-warning);
+}
+
+.status-chip.critical {
+  color: var(--nv-critical);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+/* === Status dot ========================================================== */
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dot.green {
+  background: var(--nv-success);
+  box-shadow: 0 0 8px rgba(0, 255, 174, 0.65);
+}
+
+.dot.red {
+  background: var(--nv-critical);
+  box-shadow: 0 0 10px rgba(255, 77, 109, 0.85);
+}
+
+.dot.red::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 1px solid var(--nv-critical);
+  animation: nv-pulse 1.4s var(--nv-ease) infinite;
+}
+
+.dot.amber {
+  background: var(--nv-warning);
+  box-shadow: 0 0 8px rgba(255, 179, 71, 0.7);
+}
+
+.dot.orange {
+  background: #f97316;
+  box-shadow: 0 0 9px rgba(249, 115, 22, 0.75);
+}
+
+/* === Telemetry rows ====================================================== */
+
+.telemetry-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nv-sp-2);
+}
+
+.telemetry-label {
+  color: var(--nv-text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--nv-font-display);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 10.5px;
+}
+
+.telemetry-label svg {
+  color: var(--nv-cyan);
+}
+
+.telemetry-value {
+  font-family: var(--nv-font-mono);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 14px;
+  color: var(--nv-text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.telemetry-flash {
+  animation: telemetry-flicker 380ms linear;
+}
+
+@keyframes telemetry-flicker {
+  0%,
+  100% {
+    color: var(--nv-text-strong);
+  }
+  40% {
+    color: var(--nv-cyan);
+  }
+}
+
+/* === Fuel meter ========================================================== */
+
+.fuel-track {
+  margin-top: 8px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--nv-bg);
+  border: 1px solid var(--nv-edge-soft);
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.55);
+}
+
+.fuel-track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 19px,
+    rgba(99, 130, 170, 0.18) 19px,
+    rgba(99, 130, 170, 0.18) 20px
+  );
+  pointer-events: none;
+}
+
+.fuel-fill {
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(
+    90deg,
+    var(--nv-cyan) 0%,
+    var(--nv-blue) 100%
+  );
+  box-shadow:
+    0 0 10px rgba(0, 217, 255, 0.45),
+    inset 0 0 4px rgba(255, 255, 255, 0.18);
+  transition: transform 480ms var(--nv-ease);
+}
+
+/* ============================================================================
+   Footer — link status
+   ============================================================================ */
+
+.sidebar-footer {
+  position: relative;
+  margin: 10px 14px 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--nv-edge-soft);
+  border-radius: var(--nv-r-3);
+  background: var(--nv-bg);
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  font-family: var(--nv-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nv-text-dim);
+  overflow: hidden;
+}
+
+.sidebar-footer::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    var(--nv-success),
+    var(--nv-cyan)
+  );
+}
+
+.sidebar-footer svg {
+  color: var(--nv-cyan);
+}

@@ -1,0 +1,384 @@
+﻿/* ============================================================================
+   Layout — command shell + pseudo-3D tactical map
+   The Leaflet map itself remains flat (preserves click hit-testing).
+   3D depth is implied with: tilted holographic grid, horizon glow,
+   bathymetry gradient, soft fog at edges, and elevated marker shadows.
+   ============================================================================ */
+
+.layout {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(330px, 28vw, 420px);
+  width: 100%;
+  height: 100%;
+  background: var(--nv-bg);
+  isolation: isolate;
+}
+
+/* === Map workspace ======================================================== */
+
+.map-wrap {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  margin: 14px 0 14px 14px;
+  border-radius: var(--nv-r-6);
+  border: 1px solid var(--nv-edge-soft);
+  background: var(--nv-bg);
+  box-shadow:
+    var(--nv-shadow-3),
+    inset 0 0 0 1px rgba(0, 217, 255, 0.04);
+  isolation: isolate;
+}
+
+/* Holographic corner brackets — restrained, only top-left + bottom-right */
+.map-wrap::before,
+.map-wrap::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: var(--nv-z-hud);
+  width: 38px;
+  height: 38px;
+  border: 1.5px solid rgba(0, 217, 255, 0.45);
+  opacity: 0.78;
+}
+
+.map-wrap::before {
+  top: 8px;
+  left: 8px;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 4px;
+}
+
+.map-wrap::after {
+  bottom: 8px;
+  right: 8px;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 4px;
+}
+
+.fleet-map {
+  width: 100%;
+  height: 100%;
+  background: var(--nv-bg);
+}
+
+.fleet-map .leaflet-container {
+  background: var(--nv-bg) !important;
+  font-family: var(--nv-font-body);
+}
+
+.map-wrap .leaflet-container {
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+/* ============================================================================
+   Decorative depth overlays — non-interactive, sit above tiles below markers
+   ============================================================================ */
+
+.map-cinematic-overlay,
+.map-grid-overlay,
+.map-vignette,
+.map-horizon,
+.map-classification-strip {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* ---------- 1. Bathymetric / horizon depth glow -------------------------- */
+
+.map-cinematic-overlay {
+  inset: 0;
+  z-index: var(--nv-z-map-overlay);
+  background:
+    /* Top horizon glow — the "sky" / sensor sweep */
+    radial-gradient(140% 60% at 50% -10%, rgba(0, 168, 255, 0.16), transparent 56%),
+    /* Bottom depth fog — the "deep water" */
+    radial-gradient(120% 70% at 50% 110%, rgba(0, 8, 20, 0.55), transparent 60%),
+    /* Center vignette to focus operator's eyes */
+    radial-gradient(80% 60% at 50% 50%, transparent 35%, rgba(2, 8, 20, 0.32) 100%);
+  mix-blend-mode: screen;
+}
+
+.map-theme-earth .map-cinematic-overlay {
+  background:
+    radial-gradient(140% 60% at 50% -10%, rgba(0, 168, 255, 0.10), transparent 60%),
+    radial-gradient(120% 70% at 50% 110%, rgba(2, 8, 20, 0.18), transparent 65%);
+  mix-blend-mode: normal;
+}
+
+/* ---------- 2. Tilted holographic grid (creates the "command-table" feel) -*/
+
+.map-grid-overlay {
+  inset: -20% -10% -10% -10%;
+  z-index: calc(var(--nv-z-map-overlay) + 1);
+  opacity: 0.42;
+  background-image:
+    linear-gradient(rgba(0, 217, 255, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 217, 255, 0.10) 1px, transparent 1px),
+    linear-gradient(rgba(0, 217, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 217, 255, 0.05) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+  /* Pseudo-3D — perspective tilt creates a sense of depth and elevation */
+  transform: perspective(1800px) rotateX(38deg) translateZ(-40px);
+  transform-origin: 50% 100%;
+  -webkit-mask:
+    linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  mask:
+    linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 6px rgba(0, 217, 255, 0.18));
+}
+
+.map-theme-earth .map-grid-overlay {
+  opacity: 0.18;
+  filter: none;
+}
+
+/* ---------- 3. Horizon line — thin glowing edge near the top -------------- */
+
+.map-horizon {
+  top: 18%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  z-index: calc(var(--nv-z-map-overlay) + 2);
+  background: linear-gradient(
+    90deg,
+    transparent 8%,
+    rgba(0, 217, 255, 0.45) 50%,
+    transparent 92%
+  );
+  filter: blur(0.4px);
+  opacity: 0.55;
+}
+
+.map-horizon::after {
+  content: '';
+  position: absolute;
+  inset: -12px 0 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 168, 255, 0.10),
+    transparent 70%
+  );
+}
+
+.map-theme-earth .map-horizon {
+  opacity: 0.22;
+}
+
+/* ---------- 4. Edge vignette — calmer focus on map content ---------------- */
+
+.map-vignette {
+  inset: 0;
+  z-index: calc(var(--nv-z-map-overlay) + 3);
+  background:
+    radial-gradient(70% 100% at 0% 50%, transparent 60%, rgba(2, 8, 20, 0.45) 100%),
+    radial-gradient(70% 100% at 100% 50%, transparent 60%, rgba(2, 8, 20, 0.45) 100%),
+    radial-gradient(100% 50% at 50% 0%, transparent 65%, rgba(2, 8, 20, 0.35) 100%),
+    radial-gradient(100% 50% at 50% 100%, transparent 65%, rgba(2, 8, 20, 0.50) 100%);
+  mix-blend-mode: multiply;
+}
+
+/* ---------- 5. Classification strip across the bottom -------------------- */
+
+.map-classification-strip {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22px;
+  z-index: var(--nv-z-map-strip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(2, 8, 20, 0.6) 100%
+  );
+  border-top: 1px solid rgba(0, 217, 255, 0.18);
+  font-family: var(--nv-font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(0, 217, 255, 0.78);
+}
+
+.map-classification-strip span {
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   Leaflet zoom controls
+   ============================================================================ */
+
+.leaflet-top.leaflet-left {
+  margin-top: 130px;
+  margin-left: 14px;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid rgba(0, 217, 255, 0.4) !important;
+  border-radius: var(--nv-r-3) !important;
+  overflow: hidden;
+  box-shadow: var(--nv-shadow-2) !important;
+}
+
+.leaflet-control-zoom a {
+  background: var(--nv-panel-strong) !important;
+  color: var(--nv-cyan) !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  border-bottom-color: rgba(0, 217, 255, 0.18) !important;
+  transition:
+    background var(--nv-d-fast) var(--nv-ease),
+    color var(--nv-d-fast) var(--nv-ease) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: rgba(0, 217, 255, 0.16) !important;
+  color: var(--nv-text-strong) !important;
+}
+
+.leaflet-control-zoom a:focus-visible {
+  outline: 2px solid var(--nv-cyan);
+  outline-offset: -2px;
+}
+
+.leaflet-tile.country-label-layer {
+  filter: brightness(2.4) contrast(1.5) saturate(0);
+  opacity: 0.85 !important;
+  mix-blend-mode: screen;
+}
+
+/* ============================================================================
+   Leaflet popups — clean readable
+   ============================================================================ */
+
+.leaflet-popup-content-wrapper {
+  background: var(--nv-panel-strong) !important;
+  color: var(--nv-text) !important;
+  border: 1px solid var(--nv-edge) !important;
+  border-radius: var(--nv-r-4) !important;
+  box-shadow: var(--nv-shadow-3) !important;
+  font-family: var(--nv-font-tactical);
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  font-size: 13px !important;
+  letter-spacing: 0.01em;
+  line-height: 1.55;
+  color: var(--nv-text) !important;
+}
+
+.leaflet-popup-content strong {
+  display: inline-block;
+  margin-bottom: 4px;
+  color: var(--nv-cyan);
+  font-family: var(--nv-font-display);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.leaflet-popup-tip {
+  background: var(--nv-panel-strong) !important;
+  border: 1px solid var(--nv-edge) !important;
+}
+
+.leaflet-popup-close-button {
+  color: var(--nv-text-dim) !important;
+  font-size: 18px !important;
+  padding: 6px 8px !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: var(--nv-cyan) !important;
+}
+
+.leaflet-control-attribution {
+  background: var(--nv-panel) !important;
+  color: var(--nv-text-muted) !important;
+  border: 1px solid rgba(0, 217, 255, 0.10) !important;
+  border-radius: var(--nv-r-2) !important;
+  padding: 2px 8px !important;
+  margin: 6px 30px 26px 6px !important;
+  font-family: var(--nv-font-mono);
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--nv-cyan-glow) !important;
+}
+
+/* ============================================================================
+   Mobile sidebar reveal
+   ============================================================================ */
+
+.sidebar-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 8, 20, 0.62);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border: 0;
+  z-index: var(--nv-z-modal);
+  cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    display: block;
+    position: relative;
+  }
+
+  .map-wrap {
+    margin: 10px;
+    border-radius: 14px;
+  }
+
+  .sidebar {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    bottom: 12px;
+    width: min(92vw, 420px);
+    margin: 0;
+    z-index: calc(var(--nv-z-modal) + 1);
+    transform: translateX(108%);
+    transition: transform var(--nv-d-panel) var(--nv-ease);
+  }
+
+  .layout.sidebar-open .sidebar {
+    transform: translateX(0%);
+  }
+}
+
+@media (max-width: 700px) {
+  .leaflet-top.leaflet-left {
+    margin-top: 86px;
+    margin-left: 10px;
+  }
+
+  .map-wrap {
+    margin: 6px;
+  }
+
+  .sidebar {
+    width: calc(100vw - 16px);
+    right: 8px;
+    top: 8px;
+    bottom: 8px;
+  }
+
+  .map-grid-overlay {
+    transform: perspective(1400px) rotateX(28deg) translateZ(-30px);
+  }
+}

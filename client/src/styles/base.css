@@ -1,0 +1,275 @@
+﻿/* ============================================================================
+   NAVCOM — Tactical Maritime Command
+   Design tokens · readable typography · UX-first foundations
+   ============================================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* — Surface palette (calm reading zones) — */
+  --nv-bg: #020814;
+  --nv-bg-2: #050f22;
+  --nv-bg-3: #071422;
+  --nv-surface: #07142a;
+  --nv-surface-2: #0a1c34;
+  --nv-surface-3: #0d2240;
+  --nv-elevated: #102a4a;
+
+  /* — Translucent panel layers (used sparingly for HUD only) — */
+  --nv-panel: rgba(7, 18, 36, 0.92);
+  --nv-panel-strong: rgba(5, 12, 24, 0.96);
+  --nv-panel-soft: rgba(10, 22, 44, 0.84);
+
+  /* — Accent / status — */
+  --nv-cyan: #00d9ff;
+  --nv-cyan-soft: rgba(0, 217, 255, 0.16);
+  --nv-cyan-glow: rgba(0, 217, 255, 0.45);
+  --nv-blue: #00a8ff;
+  --nv-blue-soft: rgba(0, 168, 255, 0.18);
+  --nv-warning: #ffb347;
+  --nv-warning-soft: rgba(255, 179, 71, 0.16);
+  --nv-critical: #ff4d6d;
+  --nv-critical-soft: rgba(255, 77, 109, 0.18);
+  --nv-success: #00ffae;
+  --nv-success-soft: rgba(0, 255, 174, 0.16);
+
+  /* — Text colors (high contrast) — */
+  --nv-text: #eaf2ff;
+  --nv-text-strong: #ffffff;
+  --nv-text-dim: #a8bbd6;
+  --nv-text-muted: #6e8aac;
+  --nv-text-quiet: #506a8c;
+
+  /* — Borders — */
+  --nv-edge: rgba(0, 217, 255, 0.22);
+  --nv-edge-soft: rgba(99, 130, 170, 0.18);
+  --nv-edge-strong: rgba(0, 217, 255, 0.6);
+  --nv-edge-divider: rgba(99, 130, 170, 0.14);
+
+  /* — Type scale (operations-readable) — */
+  --nv-fs-display: 20px;
+  --nv-fs-h1: 17px;
+  --nv-fs-h2: 15px;
+  --nv-fs-h3: 13px;
+  --nv-fs-body: 14px;
+  --nv-fs-data: 14px;
+  --nv-fs-label: 11px;
+  --nv-fs-meta: 12px;
+  --nv-fs-micro: 10px;
+
+  /* — Spacing rhythm (4px base) — */
+  --nv-sp-1: 4px;
+  --nv-sp-2: 8px;
+  --nv-sp-3: 12px;
+  --nv-sp-4: 16px;
+  --nv-sp-5: 20px;
+  --nv-sp-6: 24px;
+
+  /* — Radii — */
+  --nv-r-1: 6px;
+  --nv-r-2: 8px;
+  --nv-r-3: 10px;
+  --nv-r-4: 12px;
+  --nv-r-5: 14px;
+  --nv-r-6: 18px;
+
+  /* — Elevation — */
+  --nv-shadow-1: 0 4px 12px rgba(0, 0, 0, 0.32);
+  --nv-shadow-2: 0 14px 32px rgba(0, 0, 0, 0.45);
+  --nv-shadow-3: 0 26px 60px rgba(0, 0, 0, 0.55);
+  --nv-shadow-glow: 0 0 14px rgba(0, 217, 255, 0.22);
+  --nv-shadow-focus: 0 0 0 2px rgba(0, 217, 255, 0.35);
+
+  /* — Motion — */
+  --nv-d-fast: 150ms;
+  --nv-d-base: 220ms;
+  --nv-d-panel: 260ms;
+  --nv-d-select: 320ms;
+  --nv-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --nv-ease-snap: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* — Fonts — */
+  --nv-font-display: 'Orbitron', 'Rajdhani', 'Inter', system-ui, sans-serif;
+  --nv-font-tactical: 'Rajdhani', 'Inter', system-ui, sans-serif;
+  --nv-font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --nv-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ==========================================================================
+     Z-INDEX ARCHITECTURE — intentional layered hierarchy
+     Every layer is reserved for one purpose. No accidental overlap collisions.
+     ========================================================================== */
+  --nv-z-base: 0;            /* default flow                                    */
+  --nv-z-map: 100;           /* leaflet base tiles                              */
+  --nv-z-map-overlay: 350;   /* decorative map overlays (grid, vignette, fog)  */
+  --nv-z-map-strip: 360;     /* classification strip on map                     */
+  --nv-z-hud: 900;           /* HUD readout panels (corner widgets)            */
+  --nv-z-controls: 920;      /* interactive HUD controls (toolbar, search)     */
+  --nv-z-sidebar: 940;       /* sidebar console panel                           */
+  --nv-z-alert: 1100;        /* dedicated alert / notification rail             */
+  --nv-z-modal: 1300;        /* modal dialogs                                   */
+  --nv-z-tooltip: 1400;      /* tooltips                                        */
+  --nv-z-toast: 1500;        /* toast notifications (always on top, transient) */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--nv-bg);
+  color: var(--nv-text);
+  font-family: var(--nv-font-body);
+  font-size: var(--nv-fs-body);
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* === Globally-applied focus visibility ==================================== */
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--nv-cyan);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+button,
+[role='button'],
+[type='button'],
+[type='submit'] {
+  cursor: pointer;
+}
+
+button:disabled,
+[type='button']:disabled,
+[type='submit']:disabled {
+  cursor: not-allowed;
+}
+
+/* === Cosmetic shared utilities ============================================ */
+
+.rounded-xl {
+  border-radius: var(--nv-r-5);
+}
+
+.hud-mono {
+  font-family: var(--nv-font-mono);
+  font-size: var(--nv-fs-meta);
+  letter-spacing: 0.03em;
+}
+
+/* === Scrollbars — restrained, tactical ==================================== */
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(2, 8, 20, 0.35);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(99, 130, 170, 0.32);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 217, 255, 0.45);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* === Selection ============================================================ */
+
+::selection {
+  background: rgba(0, 217, 255, 0.35);
+  color: #ffffff;
+}
+
+/* === Toast skin (react-hot-toast wrappers) ================================ */
+
+[role='status'] > div[role='status'] {
+  background: var(--nv-panel-strong) !important;
+  color: var(--nv-text) !important;
+  border: 1px solid var(--nv-edge) !important;
+  box-shadow: var(--nv-shadow-2) !important;
+  font-family: var(--nv-font-tactical) !important;
+  font-size: 13px !important;
+  letter-spacing: 0.01em;
+}
+
+/* === Global keyframes shared across components ============================ */
+
+@keyframes nv-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.65;
+  }
+}
+
+@keyframes nv-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes nv-glow-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(0, 217, 255, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(0, 217, 255, 0.32);
+  }
+}
+
+@keyframes nv-critical-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(255, 77, 109, 0.55),
+      0 0 0 1px rgba(255, 77, 109, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(255, 77, 109, 0),
+      0 0 0 1px rgba(255, 77, 109, 0.5);
+  }
+}
+
+@keyframes nv-radar-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

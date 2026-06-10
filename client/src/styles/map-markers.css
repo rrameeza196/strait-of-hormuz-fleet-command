@@ -1,0 +1,380 @@
+﻿/* ============================================================================
+   Tactical Ship Markers — UX-first
+   Floating shadow (3D elevation) · clear status · restrained animation
+   Animation reserved for: warning / critical / hover / selected
+   ============================================================================ */
+
+.ship-icon-wrap {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.ship-marker {
+  width: 60px;
+  height: 60px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  transition:
+    transform var(--nv-d-base) var(--nv-ease),
+    filter var(--nv-d-base) var(--nv-ease);
+  --ship-shadow-color: rgba(0, 0, 0, 0.65);
+}
+
+/* ------------------------------------------------------------------------- */
+/*  Floating shadow beneath the marker — implies pseudo-3D elevation         */
+/* ------------------------------------------------------------------------- */
+.ship-marker::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 32px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    var(--ship-shadow-color) 0%,
+    rgba(0, 0, 0, 0.35) 45%,
+    transparent 80%
+  );
+  filter: blur(2.5px);
+  transform: translateX(-50%);
+  opacity: 0.7;
+  pointer-events: none;
+  transition:
+    width var(--nv-d-base) var(--nv-ease),
+    opacity var(--nv-d-base) var(--nv-ease),
+    filter var(--nv-d-base) var(--nv-ease);
+  z-index: 0;
+}
+
+/* ------------------------------------------------------------------------- */
+/*  Visibility ring — surrounds marker; reads color = ship state             */
+/* ------------------------------------------------------------------------- */
+.ship-visibility-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 50px;
+  height: 50px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.32);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.45),
+    inset 0 0 8px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  transition:
+    box-shadow var(--nv-d-select) var(--nv-ease),
+    border-color var(--nv-d-select) var(--nv-ease);
+  z-index: 2;
+}
+
+/* ------------------------------------------------------------------------- */
+/*  Sonar ring (sweep) — only animates for command anchor/target & hover     */
+/* ------------------------------------------------------------------------- */
+.ship-marker::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 50px;
+  height: 50px;
+  border-radius: 999px;
+  background: conic-gradient(
+    from 0deg,
+    currentColor 0deg,
+    transparent 50deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 0, transparent 18px, black 19px, black 24px, transparent 25px);
+  mask: radial-gradient(circle, transparent 0, transparent 18px, black 19px, black 24px, transparent 25px);
+  opacity: 0;
+  animation: nv-radar-sweep 4.2s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity var(--nv-d-base) var(--nv-ease);
+}
+
+/* ------------------------------------------------------------------------- */
+/*  Outward sonar ping ring (used for warning / distress)                    */
+/* ------------------------------------------------------------------------- */
+.ship-pulse {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1.5px solid currentcolor;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ------------------------------------------------------------------------- */
+/*  Rotating chassis (heading) + ship silhouette                              */
+/* ------------------------------------------------------------------------- */
+.ship-rotation {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  transition: transform 240ms linear;
+  position: relative;
+  z-index: 3;
+}
+
+.ship-svg {
+  width: 40px;
+  height: 40px;
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45))
+    drop-shadow(0 0 6px currentcolor);
+}
+
+.ship-svg .ship-hull-outline {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 8;
+  stroke-linejoin: round;
+}
+
+.ship-svg .ship-hull {
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+.ship-svg .ship-bridge {
+  stroke-width: 2.2;
+}
+
+.ship-svg .ship-deck {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  opacity: 0.78;
+}
+
+.ship-svg .ship-nav-light {
+  fill: rgba(255, 255, 255, 0.88);
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.6));
+}
+
+/* ============================================================================
+   Color tone by status / type — calm baseline, glow reserved for emphasis
+   ============================================================================ */
+
+.ship-marker.normal {
+  color: var(--nv-cyan);
+}
+
+.ship-marker.type-cargo.normal {
+  color: var(--nv-cyan);
+}
+
+.ship-marker.type-tanker.normal {
+  color: #93c5fd;
+}
+
+.ship-marker.type-passenger.normal {
+  color: #5eead4;
+}
+
+.ship-marker.type-security.normal {
+  color: #c4b5fd;
+}
+
+.ship-marker.alert {
+  color: var(--nv-critical);
+}
+
+.ship-marker.warning {
+  color: var(--nv-warning);
+}
+
+.ship-marker.warning .ship-pulse {
+  opacity: 0.55;
+  animation: ship-sonar 2.4s ease-out infinite;
+}
+
+/* ============================================================================
+   Hover / highlighted — bright electric blue selection
+   ============================================================================ */
+
+.ship-marker.highlighted {
+  transform: scale(1.16);
+  filter: brightness(1.18);
+  z-index: 5;
+}
+
+.ship-marker.highlighted .ship-visibility-ring {
+  border-color: rgba(120, 220, 255, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.45),
+    0 0 0 2px rgba(0, 168, 255, 0.45),
+    0 0 18px rgba(0, 217, 255, 0.55);
+}
+
+.ship-marker.highlighted::before {
+  opacity: 0.42;
+}
+
+.ship-marker.highlighted::after {
+  width: 40px;
+  opacity: 0.85;
+  filter: blur(3.5px);
+}
+
+/* ============================================================================
+   Command anchor (reference vessel) — amber halo
+   ============================================================================ */
+
+.ship-marker.command-anchor .ship-visibility-ring {
+  border-color: rgba(255, 179, 71, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(255, 179, 71, 0.35),
+    0 0 18px rgba(255, 179, 71, 0.45);
+}
+
+.ship-marker.command-anchor::before {
+  opacity: 0.5;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 179, 71, 1) 0deg,
+    transparent 50deg,
+    transparent 360deg
+  );
+}
+
+.ship-marker.command-anchor .ship-svg {
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 8px rgba(255, 179, 71, 0.6));
+}
+
+/* ============================================================================
+   Command target (closest match) — green halo
+   ============================================================================ */
+
+.ship-marker.command-target.highlighted {
+  transform: scale(1.22);
+  filter: brightness(1.25);
+}
+
+.ship-marker.command-target .ship-visibility-ring {
+  border-color: rgba(0, 255, 174, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(0, 255, 174, 0.35),
+    0 0 18px rgba(0, 255, 174, 0.55);
+}
+
+.ship-marker.command-target::before {
+  opacity: 0.5;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 255, 174, 1) 0deg,
+    transparent 50deg,
+    transparent 360deg
+  );
+}
+
+.ship-marker.command-target .ship-svg {
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 10px rgba(0, 255, 174, 0.65));
+}
+
+/* ============================================================================
+   Dimmed — out of focus when filter is active
+   ============================================================================ */
+
+.ship-marker.dimmed {
+  opacity: 0.22;
+  filter: saturate(0.45);
+}
+
+.ship-marker.dimmed::after {
+  opacity: 0.25;
+}
+
+/* ============================================================================
+   Distress pulse — PRIORITY 1 critical alert · pulsing red ring
+   ============================================================================ */
+
+.ship-marker.distress-pulse {
+  z-index: 10;
+}
+
+.ship-marker.distress-pulse .ship-pulse {
+  animation: ship-distress-pulse 1.1s ease-out infinite;
+  border-width: 2px;
+  opacity: 0.95;
+  border-color: var(--nv-critical);
+  color: var(--nv-critical);
+}
+
+.ship-marker.distress-pulse .ship-visibility-ring {
+  border-color: rgba(255, 77, 109, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(255, 77, 109, 0.32),
+    0 0 22px rgba(255, 77, 109, 0.65);
+  animation: nv-glow-breathe 1.4s var(--nv-ease) infinite;
+}
+
+.ship-marker.distress-pulse .ship-svg {
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.9))
+    drop-shadow(0 0 8px rgba(255, 77, 109, 0.85))
+    drop-shadow(0 0 18px rgba(255, 77, 109, 0.45));
+}
+
+.ship-marker.distress-pulse::after {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 77, 109, 0.45) 0%,
+    rgba(0, 0, 0, 0.35) 50%,
+    transparent 80%
+  );
+}
+
+/* ============================================================================
+   Animations — only for active-state markers, not all the time
+   ============================================================================ */
+
+@keyframes ship-sonar {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.0);
+    opacity: 0;
+  }
+}
+
+@keyframes ship-distress-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.92;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   Radar envelope rings (10 km) — calmer, subtle
+   ============================================================================ */
+
+.leaflet-overlay-pane svg path.leaflet-radar-ring {
+  fill: none !important;
+  stroke-dasharray: 22 16 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  pointer-events: none !important;
+}
+
+.leaflet-radar-ring {
+  pointer-events: none;
+}
