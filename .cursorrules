@@ -1,0 +1,163 @@
+# Code Rush — Web Dev Track (project memory)
+
+**Theme:** Real-time crisis ops, maps, and AI. **Time limit:** 8 hours (competition context).
+
+This repo also follows **CodeRush 2026 — Web Development** hackathon rules below (event policy + problem spec together).
+
+## CodeRush 2026 — Event & governance
+
+- **Format:** Full-stack web development; **8-hour continuous sprint**; **on-campus** hackathon; **up to 3** team members.
+- **Problem:** Specific problem statement is issued at event start; build a **functional, responsive, dynamic** web app that solves it.
+- **Changing requirements:** Module mimics real-world engineering — **requirements may change** during the sprint; design for **adaptability**.
+- **Prizes (context only):** 1st PKR 30,000; 2nd PKR 15,000.
+
+### Technical stack & tools
+
+- **Allowed:** Open stack — e.g. MERN, MEAN, Django, Laravel, Next.js, etc.
+- **Banned:** No-code / low-code (WordPress, Wix, Webflow, Bubble.io, etc.).
+- **Start from scratch:** No pre-built templates pulled from drives; **standard CLI initializers** (e.g. `create-react-app`, `npm init`) are **allowed**.
+
+### AI & internet policy
+
+- **Generative AI:** Allowed (ChatGPT, Gemini, Copilot, etc.).
+- **Internet:** Allowed (docs, Stack Overflow, forums).
+- **Human assistance:** **Strictly prohibited** (outside team rules as enforced by organizers).
+- **Communication tools:** **Banned** during sprint (WhatsApp, Discord, Telegram, Slack, etc. — per official rules).
+
+### Mid-sprint twist
+
+- A **surprise feature** lands at the **4-hour mark**; it **must** ship in the final solution.
+- **Clean, modular code** makes integration easier.
+
+### Submission & deployment
+
+- **Platform:** **GitHub Classroom** (private team repo).
+- **“Works on localhost” is NOT enough** — a **live, working URL is mandatory** for this hackathon.
+- Deploy via **Vercel, Netlify, Heroku, GitHub Pages, AWS**, or similar acceptable hosts.
+- **Commits:** Regular **incremental** commits expected; **one huge dump commit** may be flagged.
+
+### Hackathon evaluation (high level)
+
+- **Functionality & completeness** — solves the main problem.
+- **Adaptability** — twist feature integrated successfully.
+- **Deployment** — live link works.
+- **UI/UX** — polished and **responsive**.
+
+## Scenario
+
+Major shipping chokepoint (Strait of Hormuz area) is a high-risk red zone. **Exactly 15** commercial cargo ships in transit; build the **command system**: live tracking, **role-based** control (fleet command vs ship captains), **AI** for distress, **weather-aware** rerouting, and **alerts** when ships drift into trouble.
+
+## Non-negotiable numbers (grading)
+
+- **15** active ships (no more, no less).
+- Simulator / updates: **≥ 1 Hz** (tick at 1 Hz or faster).
+- Ship state must reach all watchers **within 500 ms, 95%** of the time.
+- **Geofence breach** alerts **≤ 1 s** after boundary cross.
+- **Proximity:** warn when any two ships are **within 2 km** (continuous pair checks).
+- **Adverse weather:** **+30% fuel** burn while moving through it.
+- **≥ 5** concurrent viewers same fleet without state going out of sync.
+- Client: **interpolate** movement between server updates — **smooth motion**, **no teleporting**, respect **max speed** / physically plausible motion.
+
+## Data source (`fleet.json`)
+
+Single shared dataset for all teams:
+
+- `boundingBox`, `navigableWater` polygon (paths must stay in navigable water).
+- `ports` with `id`, `name`, `position` `[lat, lng]`.
+- `fleet`: 15 ships — each has `shipId`, `name`, `position`, `speed` (knots), `heading` (deg true), `destination` (port id), `fuel` (tons), `cargo`, `status`.
+
+**Coordinate format:** `[lat, lng]`. **Hard-coded data** only where spec allows (e.g. basemap tiles). Ship state, alerts, AI output must be **live**.
+
+## Backend simulator (you implement)
+
+- No real fleet: **backend-owned state** advanced each tick.
+- Each ship: position, speed, heading, destination port, fuel, cargo, operational status (e.g. normal, rerouting, distressed, stopped, stranded, insufficient fuel — as needed by spec).
+
+### Routing
+
+- **You** compute paths (not baked in config). Paths must remain in **navigable water** and avoid **restricted zones** operators draw at runtime.
+- Algorithm is yours (A*, grid, visibility graph, deflection, etc.); **behavior** is graded.
+
+**Auto-reroute (no operator approval):** new restricted zone **intersects** ship’s **current path** → status → rerouting → new path avoiding all zones.
+
+**Captain / directive reroute:** command issues directive → captain **ACCEPT** or **ESCALATE_DISTRESS** → on ACCEPT, **next tick** routing picks up new goal (different port, waypoint, hold).
+
+**Weather:** not a standalone trigger; bad weather = fuel penalty. Avoiding a storm = normal **directive / reroute** path.
+
+### Edge cases
+
+- **No valid path** (e.g. zones box in destination) → **stranded** + alert.
+- **Zone drawn around a ship already inside** → **geofence breach** + attempt reroute out.
+- **Insufficient fuel** for destination on new path → flag status, **still move** until fuel actually runs out.
+
+### Each tick (≥ 1 Hz)
+
+- Advance each ship along current heading: distance = **speed × tick duration** (consistent units).
+- Apply **+30% fuel** when in **adverse weather**.
+- Update statuses (out of fuel, in zone, arrived, etc.).
+- **Push** new state to all connected clients (see real-time).
+
+## Map & UI
+
+- Interactive ocean map: **all 15 ships**.
+- **Command:** draw/edit **polygonal restricted zones** at runtime.
+- **Captain:** sees zones, **cannot** add/edit.
+- **Restricted zone entry:** alert (**visual + audible**) until **acknowledged or resolved**.
+- Ship click: **cargo, fuel, speed, destination, operational status**.
+
+## Real-time
+
+- **WebSocket** (or equivalent persistent connection) — **no polling**.
+- **Single source of truth**; everyone sees the same fleet state.
+- Client **interpolation** between updates (smooth, capped speed, no jumps).
+
+## Roles & flows
+
+- **Command:** full fleet; directives to any ship; **only** role that manages restricted zones.
+- **Captain:** **one** ship; receives directives; responds **ACCEPT** (course updates next tick) or **ESCALATE_DISTRESS** (free-form distress message). Directive + response visible to **everyone** **immediately**.
+
+## AI / NLP
+
+- Free-form distress messages from captains.
+- Extract **structured** fields: severity, problem, quantifiable impact (injuries, damage estimates, etc.).
+- Use extraction to **prioritize / display** alerts system-wide.
+
+## Weather & routing
+
+- Pull **real** weather (e.g. Open-Meteo, Stormglass, or free-tier API).
+- **+30% fuel** when moving through adverse weather.
+- When recomputing path, **factor in current weather** (avoid worst where routing allows).
+- Report whether ship **can reach destination** with current fuel given path + conditions.
+
+## Proximity
+
+- Continuous pairwise checks; **2 km** threshold; same **alert pipeline** as other alerts.
+
+## Playback / timeline
+
+- Persist history (event log, snapshots, ring buffer, etc.).
+- **Timeline UI:** scrub back; **last 1 hour** at **≥ 30 s** resolution is enough.
+- Full reconstruction at arbitrary timestamps **not** required.
+
+## Running & deliverables
+
+- **`docker compose up`** (from repo **root**) brings entire system up (problem spec).
+- **README:** document API keys / env vars.
+- Submit: **GitHub Classroom repo link**, **`docker-compose.yml` in root** (problem spec), and a **deployed live URL** — **mandatory for CodeRush 2026** (not localhost-only).
+
+## Bonuses (+5% each, additive, cap 110%)
+
+Only after core is stable: multiple reroute candidates; ship-to-ship assistance; predictive “before it breaks” alerts; proactive AI fleet advisor with accept/reject.
+
+## Grading weights
+
+Core E2E + consistent real-time state **60%**; AI/NLP depth **20%**; geo + UI/UX **15%**; code quality **5%**.
+
+## Ground rules
+
+- Must run **end-to-end on a laptop**; no undisclosed cloud-only dependencies.
+- If spec silent: **document assumptions** in README; undocumented assumptions judged strictly.
+
+---
+
+When implementing this repo, treat **both** the problem spec and **CodeRush 2026** sections as **source of truth**; ship a **working deploy**, **incremental git history**, **modular** layout for the 4-hour twist, and stack choices compatible with **Docker**, **WebSockets**, **live** ship/alert/AI data, and **fleet.json** geometry.
