@@ -1,0 +1,22 @@
+{
+  "shadowFleet": [
+    {
+      "threatId": "DV-ALPHA",
+      "behavior": "erratic",
+      "position": [26.42, 56.08],
+      "speed": 9,
+      "heading": 215,
+      "isVisible": false,
+      "seedPhase": 0.35
+    },
+    {
+      "threatId": "DV-BRAVO",
+      "behavior": "stationary",
+      "position": [26.52, 56.02],
+      "speed": 0,
+      "heading": 0,
+      "isVisible": false,
+      "seedPhase": 2.1
+    }
+  ]
+}
